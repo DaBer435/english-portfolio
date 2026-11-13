@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English Portfolio Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=Caveat:wght@500;600&family=Instrument+Sans:wght@400;500;600&family=Rye&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* One visual world: a notebook lying on a stone-grey desk, UI kept quiet around it */
+  --desk: #d9d5cc;
+  --desk-edge: #bdb7ab;
+  --ink: #1c2642;
+  --ink-soft: #5d6274;
+  --paper: #f7f2e7;
+  --cover: #1f2d47;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Caveat", "Bradley Hand", cursive;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: radial-gradient(120% 90% at 50% 42%, #e7e3db 0%, var(--desk) 55%, var(--desk-edge) 100%);
+  color: var(--ink); font-family: var(--body); overflow: hidden;
+  -webkit-font-smoothing: antialiased; touch-action: none;
+}
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; outline: none; }
+body::after { /* faint desk grain */
+  content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .35; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .42  0 0 0 0 .38  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 5; pointer-events: none;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  padding: max(18px, env(safe-area-inset-top)) 24px 0;
+}
+.brand { pointer-events: auto; line-height: 1.1; transition: opacity .6s; }
+body.open .brand { opacity: 0; pointer-events: none; } /* the title is on the cover; give the open book the full height */
+.brand h1 { font-family: var(--display); font-weight: 400; font-style: italic; font-size: 26px; margin: 0; letter-spacing: -.01em; }
+.brand p { margin: 4px 0 0; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.tools { display: flex; gap: 8px; pointer-events: auto; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(28,38,66,.16);
+  background: rgba(250,248,243,.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--ink); display: grid; place-items: center; cursor: pointer; transition: background .2s, transform .2s;
+}
+.icon-btn:hover { background: #fff; transform: translateY(-1px); }
+.icon-btn:focus-visible, .chip:focus-visible, .arrow:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn[aria-pressed="false"] .on, .icon-btn[aria-pressed="true"] .off { display: none; }
+
+nav, .tools { transition: opacity .45s, transform .45s; }
+body.reading:not(.reveal) nav { opacity: 0; transform: translate(-50%, 24px); pointer-events: none; }
+body.reading:not(.reveal) .tools { opacity: 0; pointer-events: none; }
+body.reading nav:focus-within { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+nav {
+  position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(760px, calc(100% - 32px));
+}
+#where {
+  position: fixed; top: max(24px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 5;
+  font-family: var(--display); font-style: italic; font-size: 16px; color: var(--ink-soft); white-space: nowrap; pointer-events: none;
+}
+.bar {
+  display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px;
+  background: rgba(250,248,243,.72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(28,38,66,.12); box-shadow: 0 8px 30px -12px rgba(30,30,40,.35); max-width: 100%;
+}
+.chips { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip, .arrow {
+  border: 0; background: transparent; color: var(--ink); font: 500 13.5px/1 var(--body);
+  padding: 10px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 8px; transition: background .2s, color .2s;
+}
+.chip .n { font-family: var(--display); font-weight: 400; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.chip:hover, .arrow:hover { background: rgba(28,38,66,.07); }
+.chip[aria-current="true"] { background: var(--ink); color: #f7f2e7; }
+.chip[aria-current="true"] .n { color: rgba(247,242,231,.7); }
+.arrow { padding: 10px 12px; font-size: 16px; }
+.arrow:disabled { opacity: .3; cursor: default; background: transparent; }
+
+#hint {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 66px);
+  font-family: var(--hand); font-size: 21px; color: var(--ink-soft); z-index: 4; pointer-events: none;
+  padding: 4px 16px; border-radius: 999px; background: rgba(250,248,243,.8); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  transition: opacity .8s; white-space: nowrap;
+}
+
+#loader {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--desk);
+  font-family: var(--display); font-style: italic; font-size: 20px; color: var(--ink-soft); transition: opacity .6s;
+}
+#loader.gone { opacity: 0; pointer-events: none; }
+
+/* Magnifier: a small glass resting bottom-right; pick it up to read */
+#lens {
+  --s: 64px; --ring: calc(3px + var(--s) * .02);
+  position: fixed; left: 0; top: 0; width: var(--s); height: var(--s); z-index: 6;
+  transform: translate(-50%, -50%); transition: width .35s cubic-bezier(.3,.7,.2,1), height .35s cubic-bezier(.3,.7,.2,1), opacity .2s;
+  cursor: grab; touch-action: none;
+}
+#lens.anim { transition: width .35s cubic-bezier(.3,.7,.2,1), height .35s cubic-bezier(.3,.7,.2,1), left .35s cubic-bezier(.3,.7,.2,1), top .35s cubic-bezier(.3,.7,.2,1), opacity .2s; }
+#lens.held { pointer-events: none; }
+#lens.docked:hover { --s: 70px; }
+#lens.away { opacity: .35; }
+#lens:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; border-radius: 50%; }
+#lens .glass {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background: radial-gradient(circle at 34% 28%, rgba(255,255,255,.55), rgba(226,233,242,.22) 55%, rgba(196,206,222,.32));
+  box-shadow: 0 0 0 var(--ring) #26314b, 0 0 0 calc(var(--ring) + 1.5px) rgba(255,255,255,.4), 0 14px 30px -8px rgba(20,24,36,.55);
+}
+#lens canvas { width: 100%; height: 100%; display: block; opacity: 0; transition: opacity .15s; }
+#lens.mag canvas { opacity: 1; }
+#lens .glass::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(110% 75% at 30% 12%, rgba(255,255,255,.28), rgba(255,255,255,0) 45%);
+  box-shadow: inset 0 0 calc(var(--s) * .06) rgba(20,30,50,.25);
+}
+#lens .handle {
+  position: absolute; left: calc(50% - var(--s) * .07); top: 50%; width: calc(var(--s) * .14); height: calc(var(--s) * .48);
+  transform-origin: 50% 0; transform: rotate(-45deg) translateY(calc(var(--s) * .5 + var(--ring) - 1px));
+  border-radius: 0 0 calc(var(--s) * .07) calc(var(--s) * .07);
+  background: linear-gradient(90deg, #172036, #3b4c70 45%, #1a2339); box-shadow: 0 8px 16px -6px rgba(20,24,36,.5);
+}
+#lens .handle::before { /* metal collar */
+  content: ""; position: absolute; left: -8%; right: -8%; top: 0; height: 18%; border-radius: 3px;
+  background: linear-gradient(90deg, #8d929c, #e3e5ea 45%, #8d929c);
+}
+#lensDock {
+  position: fixed; width: 64px; height: 64px; border-radius: 50%; z-index: 5; transform: translate(-50%, -50%);
+  border: 1.5px dashed rgba(28,38,66,.4); background: rgba(250,248,243,.55); cursor: pointer; display: none;
+  font: 500 10px/1.15 var(--body); color: var(--ink-soft); text-align: center; padding: 0; place-items: center;
+}
+#lensDock.show { display: grid; }
+#lensDock:hover { background: rgba(250,248,243,.9); }
+@media (hover: none) { #lens, #lensDock { display: none !important; } }
+#pageLink { position: fixed; z-index: 4; display: none; border-radius: 6px; cursor: pointer; }
+#pageLink:hover, #pageLink:focus-visible { background: rgba(52,78,140,.10); outline: 2px solid rgba(52,78,140,.35); }
+/* Zoom view */
+#viewer {
+  position: fixed; inset: 0; z-index: 30; background: rgba(22,26,36,.88); display: none;
+  flex-direction: column; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+#viewer.open { display: flex; }
+.vbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; color: #efeadf; }
+.vbar .t { font-family: var(--display); font-style: italic; font-size: 18px; }
+.vbar .s { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .65; margin-top: 2px; }
+.vbar .btns { display: flex; gap: 8px; }
+.vbar .icon-btn { background: rgba(255,255,255,.1); color: #efeadf; border-color: rgba(255,255,255,.18); }
+.vbar .icon-btn:hover { background: rgba(255,255,255,.2); }
+#vscroll { flex: 1; overflow: auto; display: flex; padding: 0 16px 24px; }
+#vimg {
+  margin: auto; display: block; height: calc(100vh - 100px); width: auto; max-width: none;
+  border-radius: 3px; box-shadow: 0 20px 60px rgba(0,0,0,.45); cursor: zoom-in;
+}
+#viewer.zoomed #vimg { height: auto; width: min(2800px, 200vw); cursor: zoom-out; }
+#viewer:not(.zoomed) #vimg { max-width: calc(100vw - 32px); height: auto; max-height: calc(100vh - 100px); }
+
+@media (max-width: 640px) {
+  .brand h1 { font-size: 21px; }
+  .chip .label-long { display: none; }
+  #hint { font-size: 19px; bottom: calc(max(18px, env(safe-area-inset-bottom)) + 98px); }
+  #where { top: auto; bottom: calc(max(18px, env(safe-area-inset-bottom)) + 70px); font-size: 15px; }
+}
+@media (min-width: 641px) { .chip .label-short { display: none; } #where { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="loader">Opening the notebook…</div>
+<div id="stage" aria-label="3D notebook. Click or drag the pages to turn them."></div>
+
+<header>
+  <div class="brand">
+    <h1>English Portfolio</h1>
+    <p>First term · 2º Bachillerato</p>
+  </div>
+  <div class="tools">
+    <button class="icon-btn" id="zoomBtn" title="Open page full screen (Z)" aria-label="Open page full screen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>
+    </button>
+    <button class="icon-btn" id="soundBtn" aria-pressed="true" title="Page sounds" aria-label="Page sounds">
+      <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+      <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="m17 9 5 6M22 9l-5 6"/></svg>
+    </button>
+  </div>
+</header>
+
+<div id="lens" class="docked" role="button" tabindex="0" aria-label="Magnifier. Click to pick it up, Esc to put it back." title="Magnifier: click to pick it up (L)"><div class="handle"></div><div class="glass"><canvas></canvas></div></div>
+<button id="lensDock" aria-label="Put the magnifier back">put<br>back</button>
+<a id="pageLink" target="_blank" rel="noopener" aria-label="Open the full project in a new tab"></a>
+<div id="where">Cover</div>
+<div id="hint">Click the cover to open it</div>
+
+<nav aria-label="Sections">
+  <div class="bar">
+    <button class="arrow" id="prevBtn" aria-label="Previous page">←</button>
+    <div class="chips" id="chips"></div>
+    <button class="arrow" id="nextBtn" aria-label="Next page">→</button>
+  </div>
+</nav>
+
+<div id="viewer" role="dialog" aria-modal="true" aria-label="Page viewer">
+  <div class="vbar">
+    <div><div class="t" id="vtitle"></div><div class="s" id="vsub"></div></div>
+    <div class="btns">
+      <button class="icon-btn" id="vprev" aria-label="Previous page">←</button>
+      <button class="icon-btn" id="vnext" aria-label="Next page">→</button>
+      <button class="icon-btn" id="vclose" aria-label="Close viewer">✕</button>
+    </div>
+  </div>
+  <div id="vscroll"><img id="vimg" alt=""></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+/* ------------------------------------------------------------------
+   CONTENT. Sections follow the teacher's numbering (1 Cover … 7 Self-assessment).
+   To add pages later: add hi-/lo-/xl-/orig- images and list it here.
+------------------------------------------------------------------- */
+const SECTIONS = [
+  { num: 2, id: 'presentation', title: 'Personal Presentation', short: 'About me', color: '#b3a6cf',
+    blurb: 'How my school year is going, in class and outside it.',
+    pages: [
+      { img: 'p15', title: 'School, sport and the future' },
+    ] },
+  { num: 3, id: 'routines', title: 'Daily Routines', short: 'Routines', color: '#93b39a',
+    blurb: 'Notes from the talks we give in class, and my own project.',
+    pages: [
+      { img: 'p09', title: 'Talks: the lost Franklin expedition, the hidden ocean, addiction' },
+      { img: 'p10', title: 'Talk: extreme environments · My space project' },
+      { img: 'p10b', title: 'My project: A Human Civilization Beyond Earth',
+        link: { url: 'https://a-human-civilization-beyond-earth.vercel.app/', rect: [0.2555, 0.865, 0.7945, 0.9328] } },
+    ] },
+  { num: 4, id: 'vocab', title: 'Vocabulary', short: 'Vocab', color: '#8ea9cb',
+    blurb: 'New words and expressions, with my own definitions.',
+    pages: [
+      { img: 'p01', title: 'Vocabulary I' },
+      { img: 'p02', title: 'Vocabulary II' },
+    ] },
+  { num: 5, id: 'grammar', title: 'Grammar', short: 'Grammar', color: '#d9a08a',
+    blurb: 'Reported speech, comparatives and future forms: notes and practice.',
+    pages: [
+      { img: 'p03', title: 'Reported speech, sentences 1–15' },
+      { img: 'p04', title: 'Reported speech, sentences 16–32' },
+      { img: 'p05', title: 'Reported speech, sentences 33–40' },
+      { img: 'p06', title: 'Textbook exercises & advanced comparatives' },
+      { img: 'p08', title: 'Future forms: notes (29 October)' },
+      { img: 'p11', title: 'Future forms: practice' },
+    ] },
+  { num: 6, id: 'pau', title: 'PAU Exercises', short: 'PAU', color: '#dfc06e',
+    blurb: 'Exam-style practice, writings included.',
+    pages: [
+      { img: 'p07', title: 'Writing: a description (textbook p. 69)' },
+      { img: 'p12', title: 'First-term exam review, part 1' },
+      { img: 'p13', title: 'First-term exam review, part 2' },
+      { img: 'p14', title: 'First-term exam review, part 3' },
+    ] },
+  { num: 7, id: 'self', title: 'Self-Assessment', short: 'Self', color: '#d9a3ad',
+    blurb: 'What I did well, what I can improve, and a few words for you.',
+    pages: [
+      { img: 'p16', title: 'Looking back at the first term' },
+    ] },
+];
+
+/* ---------------- Build the sequence of page faces ---------------- */
+// Each section opens on a left-hand divider facing its first page on the right.
+const faces = [{ type: 'contents' }];
+for (const s of SECTIONS) {
+  if (faces.length % 2 === 0) faces.push({ type: 'blank', section: s.id });
+  s.dividerFace = faces.length;
+  faces.push({ type: 'divider', section: s.id, sec: s });
+  s.firstFace = faces.length;
+  for (const p of s.pages) { p.face = faces.length; faces.push({ type: 'page', section: s.id, sec: s, ...p }); }
+}
+if (faces.length % 2) faces.push({ type: 'blank' });
+faces.forEach((f, i) => (f.pageNo = i + 1));
+const PAPER_LEAVES = faces.length / 2;
+
+/* ---------------- Geometry constants ---------------- */
+const W = 3.2, H = 4.2;              // page size (world units)
+const EPS = 0.022;                    // sheet spacing in the stack
+const N = PAPER_LEAVES + 1;           // leaves incl. front cover
+const BASE = 0.06;                    // top of the back cover
+const CT = 0.045;                     // cover thickness
+const CW = W + 0.1, CH = H + 0.14;    // cover size
+const RINGS = 15;
+const NX = 40, NY = 14;
+const TAB_L = 0.27, TAB_SPAN = 0.5, TAB_STEP = 0.56, TAB_Z0 = -H / 2 + 0.28;
+const yR = i => BASE + (N - i) * EPS;
+const yL = i => BASE + (i + 1) * EPS;
+
+/* ---------------- Renderer & scene ---------------- */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+const MAX_ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+const key = new THREE.DirectionalLight(0xfff4e6, 2.1);
+key.position.set(-3.5, 10, 4.5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -7, right: 7, top: 6, bottom: -6, near: 1, far: 25 });
+key.shadow.bias = -0.0004; key.shadow.normalBias = 0.015; key.shadow.radius = 4;
+scene.add(key);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd8cfc0, 0.55));
+
+const book = new THREE.Group();
+scene.add(book);
+
+// Desk shadow catcher + soft contact shadow
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.ShadowMaterial({ opacity: 0.16 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const contact = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.filter = 'blur(26px)'; g.fillStyle = 'rgba(40,32,24,0.55)'; g.fillRect(48, 48, 160, 160);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = 0.002; book.add(m); return m;
+})();
+
+/* ---------------- Asset loading ---------------- */
+const images = { hi: {}, lo: {} };
+function loadImg(src) {
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+async function getImg(res, name) {
+  if (!images[res][name]) images[res][name] = loadImg(`${res}-${name}.webp`);
+  return images[res][name];
+}
+
+/* ---------------- Canvas page painting ---------------- */
+// high-res pages match the size they reach on screen in the reading view
+// full-resolution pages on larger screens: drawn 1:1 from the source, no resampling in the browser
+const TEX_W = { hi: Math.max(innerWidth, innerHeight) > 900 ? 1600 : 1024, lo: 300 };
+const RATIO = H / W;
+const secById = Object.fromEntries(SECTIONS.map(s => [s.id, s]));
+
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const m = v => Math.max(0, Math.min(255, Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f)));
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+function spaced(ctx, txt, x, y, sp) { // letter-spaced text without relying on ctx.letterSpacing
+  for (const ch of txt) { ctx.fillText(ch, x, y); x += ctx.measureText(ch).width + sp; }
+  return x;
+}
+function wrap(ctx, text, x, y, maxW, lh) {
+  const words = text.split(' '); let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); line = w; y += lh; } else line = test;
+  }
+  ctx.fillText(line, x, y); return y;
+}
+function leader(ctx, x1, x2, y, k) {
+  ctx.save(); ctx.fillStyle = 'rgba(28,38,66,.28)';
+  for (let x = x1; x < x2; x += 14 * k) ctx.fillRect(x, y - 2 * k, 3 * k, 3 * k);
+  ctx.restore();
+}
+function tape(ctx, x, y, w, h, color, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.beginPath(); const z = h / 8;
+  ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2, -h / 2);
+  for (let i = 0; i < 8; i++) ctx.lineTo(w / 2 + (i % 2 ? 0 : z * 0.9), -h / 2 + (i + 1) * z);
+  ctx.lineTo(-w / 2, h / 2);
+  for (let i = 0; i < 8; i++) ctx.lineTo(-w / 2 - (i % 2 ? 0 : z * 0.9), h / 2 - (i + 1) * z);
+  ctx.closePath(); ctx.globalAlpha = 0.82; ctx.fillStyle = color; ctx.fill();
+  ctx.globalAlpha = 0.18; ctx.fillStyle = '#fff';
+  for (let i = -w / 2; i < w / 2; i += h * 0.5) ctx.fillRect(i, -h / 2, h * 0.18, h);
+  ctx.restore();
+}
+
+function paintDivider(ctx, s, k, w, h) {
+  const dark = shade(s.color, -0.35);
+  tape(ctx, w * 0.5, 150 * k, 380 * k, 92 * k, s.color, -0.035);
+  ctx.fillStyle = 'rgba(28,38,66,.55)'; ctx.font = `600 ${24 * k}px ${getComputedStyle(document.body).getPropertyValue('--body')}`;
+  spaced(ctx, 'SECTION', 120 * k, 470 * k, 7 * k);
+  ctx.fillStyle = dark; ctx.font = `300 ${300 * k}px Fraunces, Georgia, serif`;
+  ctx.fillText(String(s.num).padStart(2, '0'), 106 * k, 740 * k);
+  ctx.fillStyle = '#1c2642'; ctx.font = `italic 400 ${104 * k}px Fraunces, Georgia, serif`;
+  ctx.fillText(s.title, 120 * k, 880 * k);
+  ctx.fillStyle = s.color; ctx.fillRect(120 * k, 930 * k, 860 * k, 4 * k);
+  ctx.fillStyle = '#56596a'; ctx.font = `400 ${34 * k}px "Instrument Sans", Arial, sans-serif`;
+  let y = wrap(ctx, s.blurb, 120 * k, 1000 * k, 860 * k, 48 * k);
+  y += 110 * k;
+  ctx.fillStyle = 'rgba(28,38,66,.55)'; ctx.font = `600 ${22 * k}px "Instrument Sans", Arial, sans-serif`;
+  spaced(ctx, 'IN THIS SECTION', 120 * k, y, 6 * k); y += 70 * k;
+  for (const p of s.pages) {
+    ctx.font = `500 ${46 * k}px Caveat, cursive`; ctx.fillStyle = '#1c2642';
+    let t = p.title; while (ctx.measureText(t).width > 720 * k) t = t.slice(0, -2);
+    if (t !== p.title) t = t.trimEnd() + '…';
+    ctx.fillText(t, 120 * k, y);
+    const tw = ctx.measureText(t).width;
+    ctx.font = `italic 400 ${32 * k}px Fraunces, Georgia, serif`; ctx.fillStyle = dark;
+    const pn = String(p.face + 1); const pw = ctx.measureText(pn).width;
+    ctx.fillText(pn, 980 * k - pw, y);
+    leader(ctx, 120 * k + tw + 18 * k, 980 * k - pw - 16 * k, y, k);
+    y += 64 * k; if (y > h - 140 * k) break;
+  }
+}
+
+function paintContents(ctx, k, w, h) {
+  tape(ctx, 330 * k, 120 * k, 300 * k, 80 * k, '#1f2d47', 0.04);
+  ctx.fillStyle = 'rgba(28,38,66,.55)'; ctx.font = `600 ${24 * k}px "Instrument Sans", Arial, sans-serif`;
+  spaced(ctx, 'CONTENTS', 190 * k, 330 * k, 8 * k);
+  ctx.fillStyle = '#1c2642'; ctx.font = `italic 400 ${96 * k}px Fraunces, Georgia, serif`;
+  ctx.fillText('English Portfolio', 186 * k, 450 * k);
+  ctx.fillStyle = '#56596a'; ctx.font = `400 ${32 * k}px "Instrument Sans", Arial, sans-serif`;
+  ctx.fillText('First term · 2º Bachillerato', 190 * k, 510 * k);
+  let y = 680 * k;
+  for (const s of SECTIONS) {
+    ctx.fillStyle = shade(s.color, -0.3); ctx.font = `300 ${70 * k}px Fraunces, Georgia, serif`;
+    ctx.fillText(String(s.num).padStart(2, '0'), 186 * k, y);
+    ctx.fillStyle = '#1c2642'; ctx.font = `400 ${50 * k}px Fraunces, Georgia, serif`;
+    ctx.fillText(s.title, 320 * k, y);
+    const tw = ctx.measureText(s.title).width;
+    ctx.font = `italic 400 ${36 * k}px Fraunces, Georgia, serif`;
+    const pn = String(s.dividerFace + 1); const pw = ctx.measureText(pn).width;
+    ctx.fillText(pn, 1090 * k - pw, y);
+    leader(ctx, 320 * k + tw + 20 * k, 1090 * k - pw - 18 * k, y, k);
+    ctx.fillStyle = '#6b6e7c'; ctx.font = `500 ${36 * k}px Caveat, cursive`;
+    ctx.fillText(`${s.pages.length} page${s.pages.length > 1 ? 's' : ''}`, 322 * k, y + 50 * k);
+    y += 165 * k;
+  }
+  ctx.save(); ctx.translate(820 * k, h - 190 * k); ctx.rotate(-0.06);
+  ctx.fillStyle = '#4b5a86'; ctx.font = `600 ${48 * k}px Caveat, cursive`; ctx.fillText('turn the page →', 0, 0);
+  ctx.restore();
+}
+
+function linen(ctx, w, h, base, k) {
+  ctx.fillStyle = base; ctx.fillRect(0, 0, w, h);
+  const id = ctx.getImageData(0, 0, w, h), d = id.data;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4;
+    const n = (Math.random() - 0.5) * 14 + ((x % 3 === 0) ? 5 : 0) + ((y % 3 === 0) ? -5 : 0);
+    d[i] += n; d[i + 1] += n; d[i + 2] += n;
+  }
+  ctx.putImageData(id, 0, 0);
+}
+function paintEndpaper(ctx, w, h, k, withLabel) {
+  ctx.fillStyle = '#22314d'; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(232,222,198,.14)'; ctx.lineWidth = 2 * k;
+  const s = 70 * k;
+  for (let y = -s; y < h + s; y += s) for (let x = -s; x < w + s; x += s) {
+    const ox = ((y / s) % 2) * s / 2;
+    ctx.beginPath(); ctx.arc(x + ox, y, s * 0.32, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+  }
+  if (withLabel) {
+    const lw = 640 * k, lh = 300 * k, lx = (w - lw) / 2, ly = h * 0.36;
+    ctx.fillStyle = '#efe7d4'; roundRect(ctx, lx, ly, lw, lh, 18 * k); ctx.fill();
+    ctx.strokeStyle = 'rgba(31,45,71,.5)'; ctx.lineWidth = 2 * k; roundRect(ctx, lx + 14 * k, ly + 14 * k, lw - 28 * k, lh - 28 * k, 10 * k); ctx.stroke();
+    ctx.fillStyle = '#1f2d47'; ctx.font = `600 ${22 * k}px "Instrument Sans", Arial, sans-serif`;
+    spaced(ctx, 'THIS PORTFOLIO BELONGS TO', lx + 60 * k, ly + 92 * k, 5 * k);
+    ctx.strokeStyle = 'rgba(31,45,71,.45)'; ctx.beginPath(); ctx.moveTo(lx + 60 * k, ly + 200 * k); ctx.lineTo(lx + lw - 60 * k, ly + 200 * k); ctx.stroke();
+    ctx.fillStyle = '#56596a'; ctx.font = `italic 400 ${28 * k}px Fraunces, Georgia, serif`;
+    ctx.fillText('English · 2º Bachillerato · 2026–2027', lx + 60 * k, ly + 250 * k);
+  }
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/* ---------------- Inside front cover: a black-and-white WANTED poster ----------------
+   Paper and ink are painted on separate layers so the ink can be worn away like an old print. */
+function seeded(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 2147483647); }
+function fitFont(ctx, text, maxW, size, family) {
+  let s = size; ctx.font = `${s}px ${family}`;
+  while (ctx.measureText(text).width > maxW && s > 8) { s -= 2; ctx.font = `${s}px ${family}`; }
+  return s;
+}
+function centerText(ctx, text, cx, y, spacing = 0) {
+  if (!spacing) { ctx.textAlign = 'center'; ctx.fillText(text, cx, y); ctx.textAlign = 'left'; return; }
+  let tw = 0; for (const ch of text) tw += ctx.measureText(ch).width + spacing; tw -= spacing;
+  spaced(ctx, text, cx - tw / 2, y, spacing);
+}
+async function paintWantedCover(res) {
+  const w = TEX_W[res], h = Math.round(w * RATIO), k = w / 1200;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingQuality = 'high';
+  paintEndpaper(ctx, w, h, k, false);
+  const photo = await loadImg('wanted.webp').catch(() => null);
+  const rnd = seeded(20261113);
+
+  // poster sheet, a little crooked, on the left page (spine and rings are on the right edge)
+  const px = 80 * k, py = 92 * k, pw = w - px - 175 * k, ph = h - py - 96 * k;
+  const P = document.createElement('canvas'); P.width = Math.round(pw); P.height = Math.round(ph);
+  const p = P.getContext('2d'); p.imageSmoothingQuality = 'high';
+  const W2 = P.width, H2 = P.height, cx = W2 / 2;
+
+  // paper: warm grey stock, darker towards the edges, stains and two fold lines
+  p.fillStyle = '#e9e6df'; p.fillRect(0, 0, W2, H2);
+  let gr = p.createRadialGradient(cx, H2 * 0.45, W2 * 0.2, cx, H2 * 0.5, W2 * 0.95);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(60,55,48,.32)');
+  p.fillStyle = gr; p.fillRect(0, 0, W2, H2);
+  for (let i = 0; i < 9; i++) {
+    const sx = rnd() * W2, sy = rnd() * H2, sr = (40 + rnd() * 160) * k;
+    const sg = p.createRadialGradient(sx, sy, sr * 0.2, sx, sy, sr);
+    sg.addColorStop(0, `rgba(70,64,55,${0.03 + rnd() * 0.05})`); sg.addColorStop(0.8, 'rgba(70,64,55,.02)'); sg.addColorStop(1, 'rgba(70,64,55,0)');
+    p.fillStyle = sg; p.beginPath(); p.arc(sx, sy, sr, 0, 7); p.fill();
+  }
+  // coffee ring, because studying
+  p.strokeStyle = 'rgba(60,52,44,.16)'; p.lineWidth = 7 * k;
+  p.beginPath(); p.arc(W2 * 0.9, H2 * 0.9, 78 * k, 0.3, 5.6); p.stroke();
+  p.lineWidth = 2 * k; p.beginPath(); p.arc(W2 * 0.9, H2 * 0.9, 70 * k, 0.1, 4.9); p.stroke();
+  const id = p.getImageData(0, 0, W2, H2), d = id.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (rnd() - 0.5) * 18; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+  p.putImageData(id, 0, 0);
+  for (const [x1, y1, x2, y2] of [[0, H2 * 0.5, W2, H2 * 0.5], [cx, 0, cx, H2]]) {
+    const lg = p.createLinearGradient(x1, y1 - (y2 === y1 ? 6 * k : 0), x1 + (x1 === x2 ? 6 * k : 0), y1);
+    p.strokeStyle = 'rgba(255,255,255,.45)'; p.lineWidth = 2.5 * k; p.beginPath(); p.moveTo(x1, y1); p.lineTo(x2, y2); p.stroke();
+    p.strokeStyle = 'rgba(40,36,30,.12)'; p.lineWidth = 1.5 * k; p.beginPath();
+    p.moveTo(x1 + (x1 === x2 ? 3 * k : 0), y1 + (y1 === y2 ? 3 * k : 0)); p.lineTo(x2 + (x1 === x2 ? 3 * k : 0), y2 + (y1 === y2 ? 3 * k : 0)); p.stroke();
+  }
+
+  // mugshot, printed on the paper (multiply) with a heavy black frame
+  const fw = W2 * 0.45, fh = fw * 1.25, fx = cx - fw / 2, fy = 336 * k;
+  if (photo) {
+    p.save(); p.globalCompositeOperation = 'multiply'; p.filter = 'grayscale(1) contrast(1.08) brightness(1.04)';
+    p.drawImage(photo, fx, fy, fw, fh); p.restore();
+    const vg = p.createRadialGradient(fx + fw / 2, fy + fh * 0.42, fw * 0.3, fx + fw / 2, fy + fh / 2, fw * 0.85);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(20,18,16,.38)');
+    p.fillStyle = vg; p.fillRect(fx, fy, fw, fh);
+  }
+
+  // ink layer
+  const I = document.createElement('canvas'); I.width = W2; I.height = H2;
+  const q = I.getContext('2d'); q.fillStyle = q.strokeStyle = '#141414';
+  const WEST = 'Rye, "Rockwell Extra Bold", Georgia, serif', TYPE = '"Special Elite", "Courier New", monospace';
+  q.lineWidth = 7 * k; q.strokeRect(34 * k, 34 * k, W2 - 68 * k, H2 - 68 * k);
+  q.lineWidth = 2 * k; q.strokeRect(50 * k, 50 * k, W2 - 100 * k, H2 - 100 * k);
+
+  fitFont(q, 'WANTED', W2 - 170 * k, 200 * k, WEST); centerText(q, 'WANTED', cx, 235 * k, 6 * k);
+  q.fillRect(120 * k, 260 * k, W2 - 240 * k, 4 * k);
+  q.font = `${26 * k}px ${TYPE}`; centerText(q, '★  PREFERABLY AWAKE  ★', cx, 302 * k, 6 * k);
+
+  q.lineWidth = 11 * k; q.strokeRect(fx, fy, fw, fh);
+  q.lineWidth = 2 * k; q.strokeRect(fx - 14 * k, fy - 14 * k, fw + 28 * k, fh + 28 * k);
+  // name placard across the bottom of the photo
+  const plW = fw * 0.9, plH = 44 * k, plX = cx - plW / 2, plY = fy + fh + 28 * k; // sits below the photo frame
+  q.fillRect(plX, plY, plW, plH);
+  q.save(); q.fillStyle = '#e9e6df'; fitFont(q, 'ALIAS: “THE FEMINIST”', plW - 30 * k, 24 * k, TYPE);
+  centerText(q, 'ALIAS: “THE FEMINIST”', cx, plY + plH * 0.68, 1 * k); q.restore();
+
+  fitFont(q, 'FOR EXCESSIVE STUDYING', W2 - 180 * k, 62 * k, WEST); centerText(q, 'FOR EXCESSIVE STUDYING', cx, 1002 * k, 2 * k);
+  q.font = `${23 * k}px ${TYPE}`; centerText(q, 'CHARGED WITH', cx, 1043 * k, 9 * k);
+  const charges = [
+    'Reporting other people’s speech, 40 times',
+    'Possession of far too much vocabulary',
+    'Talking about the future in four tenses',
+    'Writing PAU essays without being asked',
+  ];
+  let y = 1082 * k;
+  for (const t of charges) { fitFont(q, '— ' + t, W2 - 220 * k, 27 * k, TYPE); centerText(q, '— ' + t, cx, y); y += 36 * k; }
+  q.fillRect(120 * k, 1214 * k, W2 - 240 * k, 3 * k);
+  fitFont(q, 'REWARD: A 10 IN ENGLISH', W2 - 190 * k, 58 * k, WEST); centerText(q, 'REWARD: A 10 IN ENGLISH', cx, 1283 * k, 2 * k);
+  fitFont(q, 'LAST SEEN IN 2º BACHILLERATO · APPROACH WITH A DICTIONARY', W2 - 200 * k, 19 * k, TYPE);
+  centerText(q, 'LAST SEEN IN 2º BACHILLERATO · APPROACH WITH A DICTIONARY', cx, 1318 * k, 1.5 * k);
+
+  // wear the ink: specks and scratches removed, like a tired letterpress
+  q.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 2600; i++) { q.fillStyle = `rgba(0,0,0,${0.35 + rnd() * 0.6})`; const r = (0.6 + rnd() * 2.6) * k; q.beginPath(); q.arc(rnd() * W2, rnd() * H2, r, 0, 7); q.fill(); }
+  q.lineWidth = 1.2 * k; q.strokeStyle = 'rgba(0,0,0,.5)';
+  for (let i = 0; i < 40; i++) { const x0 = rnd() * W2, y0 = rnd() * H2; q.beginPath(); q.moveTo(x0, y0); q.lineTo(x0 + (rnd() - 0.5) * 160 * k, y0 + (rnd() - 0.5) * 30 * k); q.stroke(); }
+  p.save(); p.globalCompositeOperation = 'multiply'; p.globalAlpha = 0.92; p.drawImage(I, 0, 0); p.restore();
+
+  // torn outline for the sheet
+  const edge = new Path2D(); const steps = 60, jag = 7 * k;
+  edge.moveTo(0, 0);
+  for (let i = 1; i <= steps; i++) edge.lineTo(W2 * i / steps, (rnd() - 0.3) * jag);
+  for (let i = 1; i <= steps; i++) edge.lineTo(W2 - (rnd() - 0.3) * jag, H2 * i / steps);
+  for (let i = 1; i <= steps; i++) edge.lineTo(W2 - W2 * i / steps, H2 - (rnd() - 0.3) * jag);
+  for (let i = 1; i <= steps; i++) edge.lineTo((rnd() - 0.3) * jag, H2 - H2 * i / steps);
+  edge.closePath();
+
+  ctx.save();
+  ctx.translate(px + pw / 2, py + ph / 2); ctx.rotate(-0.014); ctx.translate(-pw / 2, -ph / 2);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 26 * k; ctx.shadowOffsetY = 10 * k; ctx.fillStyle = '#e9e6df'; ctx.fill(edge); ctx.restore();
+  ctx.save(); ctx.clip(edge); ctx.drawImage(P, 0, 0); ctx.restore();
+  // two strips of tape holding it in
+  for (const [tx, rot] of [[pw * 0.16, -0.5], [pw * 0.84, 0.45]]) {
+    ctx.save(); ctx.translate(tx, 6 * k); ctx.rotate(rot);
+    ctx.fillStyle = 'rgba(232,230,224,.72)'; ctx.fillRect(-90 * k, -26 * k, 180 * k, 52 * k);
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(-90 * k, -26 * k, 180 * k, 8 * k);
+    ctx.restore();
+  }
+  ctx.restore();
+  return c;
+}
+
+function paintCover(ctx, w, h, k) {
+  linen(ctx, w, h, '#1f2d47', k);
+  const lw = 760 * k, lh = 560 * k, lx = (w - lw) / 2, ly = 300 * k;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 18 * k; ctx.shadowOffsetY = 6 * k;
+  ctx.fillStyle = '#efe6d0'; roundRect(ctx, lx, ly, lw, lh, 14 * k); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = 'rgba(31,45,71,.55)'; ctx.lineWidth = 2.5 * k; roundRect(ctx, lx + 18 * k, ly + 18 * k, lw - 36 * k, lh - 36 * k, 8 * k); ctx.stroke();
+  ctx.fillStyle = '#1f2d47'; ctx.textAlign = 'center';
+  ctx.font = `600 ${30 * k}px "Instrument Sans", Arial, sans-serif`;
+  const label = 'ENGLISH'; let tw = 0; for (const ch of label) tw += ctx.measureText(ch).width + 14 * k;
+  ctx.textAlign = 'left'; spaced(ctx, label, w / 2 - (tw - 14 * k) / 2, ly + 130 * k, 14 * k); ctx.textAlign = 'center';
+  ctx.font = `italic 400 ${150 * k}px Fraunces, Georgia, serif`; ctx.fillText('Portfolio', w / 2, ly + 300 * k);
+  ctx.fillRect(w / 2 - 60 * k, ly + 350 * k, 120 * k, 3 * k);
+  ctx.font = `400 ${46 * k}px Fraunces, Georgia, serif`; ctx.fillText('First Term', w / 2, ly + 430 * k);
+  ctx.font = `500 ${26 * k}px "Instrument Sans", Arial, sans-serif`; ctx.fillStyle = 'rgba(31,45,71,.7)';
+  ctx.fillText('2º Bachillerato · 2026–2027', w / 2, ly + 480 * k);
+  ctx.textAlign = 'left';
+  // elastic band
+  const bx = w - 150 * k; const g = ctx.createLinearGradient(bx, 0, bx + 36 * k, 0);
+  g.addColorStop(0, '#121a2b'); g.addColorStop(0.5, '#2a3854'); g.addColorStop(1, '#121a2b');
+  ctx.fillStyle = g; ctx.fillRect(bx, 0, 36 * k, h);
+}
+
+function finishFace(ctx, side, w, h, k, face) {
+  // spine shading on the inner edge, slight darkening on the outer edge
+  const inner = side === 'R' ? 0 : w, dir = side === 'R' ? 1 : -1;
+  let g = ctx.createLinearGradient(inner, 0, inner + dir * w * 0.13, 0);
+  g.addColorStop(0, 'rgba(70,52,30,0.20)'); g.addColorStop(0.35, 'rgba(70,52,30,0.07)'); g.addColorStop(1, 'rgba(70,52,30,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  const outer = w - inner;
+  g = ctx.createLinearGradient(outer, 0, outer - dir * w * 0.03, 0);
+  g.addColorStop(0, 'rgba(70,52,30,0.10)'); g.addColorStop(1, 'rgba(70,52,30,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  // punched holes for the spiral
+  const hx = side === 'R' ? w * 0.047 : w - w * 0.047, r = w * 0.0115;
+  for (let i = 0; i < RINGS; i++) {
+    const cy = (i + 0.5) / RINGS * h;
+    const rg = ctx.createRadialGradient(hx, cy, 0, hx, cy, r * 1.35);
+    rg.addColorStop(0, 'rgba(48,42,36,.92)'); rg.addColorStop(0.7, 'rgba(48,42,36,.75)'); rg.addColorStop(0.75, 'rgba(48,42,36,.25)'); rg.addColorStop(1, 'rgba(48,42,36,0)');
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(hx, cy, r * 1.35, 0, Math.PI * 2); ctx.fill();
+  }
+  if (face && face.type !== 'contents' && face.type !== 'blank') {
+    ctx.fillStyle = '#8b8678'; ctx.font = `italic 400 ${30 * k}px Fraunces, Georgia, serif`;
+    const t = String(face.pageNo);
+    ctx.fillText(t, side === 'R' ? w - 80 * k - ctx.measureText(t).width : 80 * k, h - 52 * k);
+  }
+}
+
+async function paintFace(face, side, res) {
+  const w = TEX_W[res], h = Math.round(w * RATIO), k = w / 1200;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d'); ctx.imageSmoothingQuality = 'high';
+  if (face.type === 'page') ctx.drawImage(await getImg(res, face.img), 0, 0, w, h);
+  else ctx.drawImage(await getImg(res, 'paper'), 0, 0, w, h);
+  if (face.type === 'divider') paintDivider(ctx, face.sec, k, w, h);
+  if (face.type === 'contents') paintContents(ctx, k, w, h);
+  finishFace(ctx, side, w, h, k, face);
+  return c;
+}
+function makeTex(canvas, mirror) {
+  const t = new THREE.CanvasTexture(canvas);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO;
+  if (mirror) { t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; }
+  return t;
+}
+function simpleCanvas(res, painter) {
+  const w = TEX_W[res], h = Math.round(w * RATIO), k = w / 1200;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  painter(c.getContext('2d'), w, h, k); return c;
+}
+
+/* ---------------- Leaves (paper sheets) ---------------- */
+function paperMaterial(side) {
+  return new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0, side, envMapIntensity: 0.6 });
+}
+function buildLeafGeometry() {
+  const g = new THREE.BufferGeometry();
+  const pos = new Float32Array((NX + 1) * (NY + 1) * 3), uv = new Float32Array((NX + 1) * (NY + 1) * 2), idx = [];
+  for (let j = 0; j <= NY; j++) for (let i = 0; i <= NX; i++) {
+    const n = j * (NX + 1) + i; uv[n * 2] = i / NX; uv[n * 2 + 1] = 1 - j / NY;
+  }
+  for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+    const a = (j + 1) * (NX + 1) + i, b = a + 1, c = j * (NX + 1) + i, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setIndex(idx); return g;
+}
+
+const leaves = [];
+class Leaf {
+  constructor(i) {
+    this.i = i; this.t = 0; this.vel = 0; this.target = 0; this.bend = 0; this.bendV = 0;
+    this.peek = 0; this.peekTarget = 0; this.dragging = false; this.dragT = 0; this.startAt = 0;
+    this.active = true; this.flying = false; this.tabs = [];
+  }
+  get theta() { return Math.PI * this.t; }
+  pivotY() { return yR(this.i) + (yL(this.i) - yR(this.i)) * this.t; }
+}
+
+class PaperLeaf extends Leaf {
+  constructor(i) {
+    super(i);
+    this.k = i - 1; // index into paper leaves
+    this.geo = buildLeafGeometry();
+    this.front = new THREE.Mesh(this.geo, paperMaterial(THREE.FrontSide));
+    this.back = new THREE.Mesh(this.geo, paperMaterial(THREE.BackSide));
+    for (const m of [this.front, this.back]) { m.receiveShadow = true; m.frustumCulled = false; book.add(m); }
+    this.faceF = 2 * this.k; this.faceB = 2 * this.k + 1;
+  }
+  alpha(sN, v) {
+    let a = this.theta + this.bend * Math.pow(sN, 1.4) * (1 - 0.5 * (v - 0.5));
+    if (this.peek > 0.0005) a += (this.t > 0.5 ? -1 : 1) * this.peek * 0.6 * sN * sN * sN * (0.15 + v * v);
+    return a < 0 ? 0 : a > Math.PI ? Math.PI : a;
+  }
+  edge(v) { // position + direction at the free edge for row v
+    let x = 0, y = 0, a = 0; const ds = W / NX;
+    for (let i = 1; i <= NX; i++) { a = this.alpha((i - 0.5) / NX, v); x += Math.cos(a) * ds; y += Math.sin(a) * ds; }
+    return { x, y: y + this.pivotY(), a };
+  }
+  update() {
+    const p = this.geo.attributes.position.array, ds = W / NX, py = this.pivotY();
+    for (let j = 0; j <= NY; j++) {
+      const v = j / NY, z = -H / 2 + H * v; let x = 0, y = 0;
+      let n = j * (NX + 1) * 3; p[n] = 0; p[n + 1] = py; p[n + 2] = z;
+      for (let i = 1; i <= NX; i++) {
+        const a = this.alpha((i - 0.5) / NX, v);
+        x += Math.cos(a) * ds; y += Math.sin(a) * ds; n += 3;
+        p[n] = x; p[n + 1] = py + y; p[n + 2] = z;
+      }
+    }
+    this.geo.attributes.position.needsUpdate = true;
+    this.geo.computeVertexNormals(); this.geo.computeBoundingSphere();
+    for (const tab of this.tabs) tab.update();
+  }
+}
+
+class CoverLeaf extends Leaf {
+  constructor() {
+    super(0);
+    this.pivot = new THREE.Group(); book.add(this.pivot);
+    const cloth = new THREE.MeshStandardMaterial({ color: 0x1b2840, roughness: 0.85 });
+    const box = new THREE.Mesh(new THREE.BoxGeometry(CW, CT, CH), cloth);
+    box.position.set(CW / 2, CT / 2, 0); box.castShadow = true; box.receiveShadow = true;
+    const pg = new THREE.PlaneGeometry(CW, CH); pg.rotateX(-Math.PI / 2); pg.translate(CW / 2, 0, 0);
+    this.outer = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ roughness: 0.82, envMapIntensity: 0.5 }));
+    this.outer.position.y = CT + 0.001;
+    this.inner = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ roughness: 0.9, side: THREE.BackSide, envMapIntensity: 0.5 }));
+    this.inner.position.y = -0.001;
+    this.outer.receiveShadow = this.inner.receiveShadow = true;
+    this.pivot.add(box, this.outer, this.inner);
+  }
+  pivotY() { return yR(0) + (yL(0) - yR(0)) * this.t; }
+  update() {
+    this.pivot.position.set(0, this.pivotY(), 0);
+    this.pivot.rotation.z = this.theta;
+    for (const tab of this.tabs) tab.update();
+  }
+}
+
+/* ---------------- Section tabs (stick out of the divider sheets) ---------------- */
+function tabCanvas(s, side) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = Math.round(256 * TAB_SPAN / TAB_L);
+  const g = c.getContext('2d'), w = c.width, h = c.height, r = 46;
+  // attached edge at x=0, rounded tip at x=w
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(w - r, 0); g.arcTo(w, 0, w, r, r); g.lineTo(w, h - r); g.arcTo(w, h, w - r, h, r); g.lineTo(0, h); g.closePath();
+  const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, shade(s.color, -0.12)); gr.addColorStop(0.25, s.color); gr.addColorStop(1, shade(s.color, 0.12));
+  g.fillStyle = gr; g.fill();
+  g.save(); g.translate(w * 0.56, h / 2);
+  if (side === 'B') { g.scale(-1, 1); g.rotate(-Math.PI / 2); } else g.rotate(Math.PI / 2);
+  g.fillStyle = 'rgba(20,28,48,.88)'; g.font = `600 58px "Instrument Sans", Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const label = s.short.toUpperCase(); let tw = 0; for (const ch of label) tw += g.measureText(ch).width + 6;
+  g.textAlign = 'left'; spaced(g, label, -(tw - 6) / 2, 2, 6);
+  g.restore();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = MAX_ANISO; return t;
+}
+const tabMeshes = [];
+class Tab {
+  constructor(leaf, s) {
+    this.leaf = leaf; this.s = s;
+    const slot = s.num - 1;
+    this.z1 = TAB_Z0 + slot * TAB_STEP; this.z2 = this.z1 + TAB_SPAN;
+    this.v1 = (this.z1 + H / 2) / H; this.v2 = (this.z2 + H / 2) / H;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([0, 1, 0, 0, 1, 1, 1, 0]), 2));
+    g.setIndex([1, 3, 0, 3, 2, 0]); this.geo = g;
+    const mk = (side, tex) => new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, side, transparent: true, alphaTest: 0.5, roughness: 0.7 }));
+    this.front = mk(THREE.FrontSide, tabCanvas(s, 'F')); this.back = mk(THREE.BackSide, tabCanvas(s, 'B'));
+    for (const m of [this.front, this.back]) { m.receiveShadow = true; m.frustumCulled = false; m.userData.tab = this; book.add(m); tabMeshes.push(m); }
+    leaf.tabs.push(this);
+  }
+  update() {
+    const p = this.geo.attributes.position.array, put = (n, x, y, z) => { p[n * 3] = x; p[n * 3 + 1] = y + 0.0015; p[n * 3 + 2] = z; };
+    const e1 = this.leaf.edge(this.v1), e2 = this.leaf.edge(this.v2);
+    put(0, e1.x, e1.y, this.z1); put(1, e2.x, e2.y, this.z2);
+    put(2, e1.x + Math.cos(e1.a) * TAB_L, e1.y + Math.sin(e1.a) * TAB_L, this.z1);
+    put(3, e2.x + Math.cos(e2.a) * TAB_L, e2.y + Math.sin(e2.a) * TAB_L, this.z2);
+    this.geo.attributes.position.needsUpdate = true; this.geo.computeVertexNormals(); this.geo.computeBoundingSphere();
+  }
+}
+
+/* ---------------- Static parts: back cover, stacks, spiral ---------------- */
+const backCover = new THREE.Group(); book.add(backCover);
+{
+  const box = new THREE.Mesh(new THREE.BoxGeometry(CW, CT, CH), new THREE.MeshStandardMaterial({ color: 0x1b2840, roughness: 0.85 }));
+  box.position.set(CW / 2, BASE - CT / 2, 0); box.castShadow = box.receiveShadow = true; backCover.add(box);
+}
+const backInner = (() => {
+  const pg = new THREE.PlaneGeometry(CW, CH); pg.rotateX(-Math.PI / 2); pg.translate(CW / 2, BASE + 0.001, 0);
+  const m = new THREE.Mesh(pg, new THREE.MeshStandardMaterial({ roughness: 0.9, envMapIntensity: 0.5 })); m.receiveShadow = true; backCover.add(m); return m;
+})();
+
+const edgeTex = (() => {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64; const g = c.getContext('2d');
+  g.fillStyle = '#efe8d8'; g.fillRect(0, 0, 64, 64);
+  for (let y = 0; y < 64; y += 4) { g.fillStyle = `rgba(120,100,70,${0.1 + Math.random() * 0.12})`; g.fillRect(0, y, 64, 1); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+})();
+const blockMat = new THREE.MeshStandardMaterial({ map: edgeTex, roughness: 0.95 });
+const blockR = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), blockMat);
+const blockL = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), blockMat);
+for (const b of [blockR, blockL]) { b.castShadow = b.receiveShadow = true; book.add(b); }
+
+const ringR = (N * EPS + CT * 2) / 2 + 0.05, ringY = Math.max(BASE + (N * EPS) / 2, ringR - 0.004);
+{
+  const mat = new THREE.MeshStandardMaterial({ color: 0xc4c6cb, metalness: 0.95, roughness: 0.28, envMapIntensity: 1.2 });
+  const tg = new THREE.TorusGeometry(ringR, 0.019, 10, 48);
+  for (let k = 0; k < RINGS; k++) {
+    const m = new THREE.Mesh(tg, mat);
+    m.position.set(0.03, ringY, -H / 2 + (k + 0.5) * H / RINGS); m.rotation.y = 0.06;
+    m.castShadow = true; book.add(m);
+  }
+}
+
+/* ---------------- Assemble ---------------- */
+const cover = new CoverLeaf(); leaves.push(cover);
+for (let k = 0; k < PAPER_LEAVES; k++) leaves.push(new PaperLeaf(k + 1));
+for (const s of SECTIONS) new Tab(leaves[(s.dividerFace - 1) / 2 + 1], s);
+
+/* ---------------- Textures: low-res for every face, high-res near the open spread ---------------- */
+const hiCache = new Map(); // faceIndex -> texture
+const loTex = [];
+async function initTextures() {
+  await Promise.all([document.fonts.load('400 40px Fraunces'), document.fonts.load('italic 400 40px Fraunces'), document.fonts.load('300 40px Fraunces'),
+    document.fonts.load('500 40px Caveat'), document.fonts.load('600 40px "Instrument Sans"'),
+    document.fonts.load('40px Rye'), document.fonts.load('40px "Special Elite"')].map(p => p.catch(() => {})));
+  for (let f = 0; f < faces.length; f++) {
+    const side = f % 2 === 0 ? 'R' : 'L';
+    loTex[f] = makeTex(await paintFace(faces[f], side, 'lo'), side === 'L');
+    setFaceTex(f, loTex[f]);
+  }
+  const coverTex = makeTex(simpleCanvas('hi', (g, w, h, k) => paintCover(g, w, h, k)));
+  cover.outer.material.map = coverTex;
+  cover.inner.material.map = makeTex(await paintWantedCover('hi'), true);
+  backInner.material.map = makeTex(simpleCanvas('lo', (g, w, h, k) => paintEndpaper(g, w, h, k, false)));
+  for (const m of [cover.outer.material, cover.inner.material, backInner.material]) m.needsUpdate = true;
+}
+function setFaceTex(f, tex) {
+  const leaf = leaves[Math.floor(f / 2) + 1];
+  const mat = f % 2 === 0 ? leaf.front.material : leaf.back.material;
+  const had = !!mat.map; mat.map = tex; if (!had) mat.needsUpdate = true;
+}
+let hiBusy = false;
+async function refreshHi() {
+  if (hiBusy) return; hiBusy = true;
+  try {
+    const n = Math.max(1, targetCount()), base = 2 * (n - 1);
+    const want = [];
+    for (let f = base - 2; f <= base + 3; f++) if (f >= 0 && f < faces.length) want.push(f);
+    want.sort((a, b) => Math.abs(a - base + 0.5) - Math.abs(b - base + 0.5));
+    for (const f of want) {
+      if (hiCache.has(f)) continue;
+      const side = f % 2 === 0 ? 'R' : 'L';
+      const tex = makeTex(await paintFace(faces[f], side, 'hi'), side === 'L');
+      hiCache.set(f, tex); setFaceTex(f, tex);
+    }
+    for (const [f, tex] of hiCache) if (!want.includes(f) && hiCache.size > 8) { setFaceTex(f, loTex[f]); tex.dispose(); hiCache.delete(f); }
+  } finally { hiBusy = false; }
+}
+
+/* ---------------- Flip physics ---------------- */
+const targetCount = () => { let n = 0; while (n < leaves.length && leaves[n].target === 1) n++; return n; };
+let now = performance.now() / 1000;
+
+function setTarget(leaf, tgt, delay = 0) {
+  leaf.startAt = now + delay; leaf.target = tgt; leaf.active = true;
+}
+function flipForward() { const n = targetCount(); if (n < leaves.length) { focus = n + 1 >= 2 ? 'L' : 'R'; setTarget(leaves[n], 1); afterNav(); } }
+function flipBack() { const n = targetCount(); if (n > 0) { focus = 'R'; setTarget(leaves[n - 1], 0); afterNav(); } }
+// On a phone the camera reads one page at a time: left page, then right page, then turn.
+function next() {
+  const n = targetCount();
+  if (portrait && n >= 2 && focus === 'L' && n < leaves.length) { focus = 'R'; afterNav(); return; }
+  flipForward();
+}
+function prev() {
+  const n = targetCount();
+  if (portrait && n >= 2 && focus === 'R') { focus = 'L'; afterNav(); return; }
+  flipBack();
+}
+function goTo(nT) {
+  nT = Math.max(0, Math.min(leaves.length, nT)); const cur = targetCount(); const count = Math.abs(nT - cur);
+  if (!count) return; const stag = Math.min(0.11, 0.9 / count);
+  focus = nT >= 2 ? 'L' : 'R';
+  if (nT > cur) for (let i = cur; i < nT; i++) setTarget(leaves[i], 1, (i - cur) * stag);
+  else for (let i = cur - 1; i >= nT; i--) setTarget(leaves[i], 0, (cur - 1 - i) * stag);
+  afterNav();
+}
+
+function stepLeaf(L, dt) {
+  const was = L.t;
+  if (L.dragging) {
+    L.t += (L.dragT - L.t) * Math.min(1, dt * 20);
+    L.vel = (L.t - was) / dt;
+  } else if (now >= L.startAt) {
+    const K = L.i === 0 ? 34 : 46, D = 2 * Math.sqrt(K) * 0.92;
+    if (!L.flying && L.t !== L.target) { L.flying = true; sound.swish(L.i === 0 ? 0.7 : 1); }
+    L.vel += (K * (L.target - L.t) - D * L.vel) * dt; L.t += L.vel * dt;
+  }
+  if (L.t < 0) { L.t = 0; if (L.vel < 0) L.vel = 0; }
+  if (L.t > 1) { L.t = 1; if (L.vel > 0) L.vel = 0; }
+  // paper bend follows angular velocity (edge trails), with a springy settle
+  if (L.i > 0) {
+    const env = Math.sin(Math.PI * L.t);
+    const bT = -0.16 * L.vel * Math.PI - 0.32 * env * Math.sign(L.vel || (L.target - 0.5) || 1);
+    L.bendV += (110 * (bT - L.bend) - 8.5 * L.bendV) * dt; L.bend += L.bendV * dt;
+    L.peek += (L.peekTarget - L.peek) * Math.min(1, dt * 10);
+  }
+  const settled = !L.dragging && Math.abs(L.target - L.t) < 0.0008 && Math.abs(L.vel) < 0.01 && Math.abs(L.bend) < 0.002 && Math.abs(L.peek - L.peekTarget) < 0.002;
+  if (L.flying && !L.dragging && Math.abs(L.target - L.t) < 0.004) { L.flying = false; sound.tap(); }
+  if (settled) { L.t = L.target; L.vel = 0; L.bend = 0; L.bendV = 0; L.peek = L.peekTarget; }
+  L.update();
+  L.front && (L.front.castShadow = L.back.castShadow = L.t > 0.002 && L.t < 0.998);
+  if (settled && L.peekTarget === 0) L.active = false;
+}
+
+function updateStacks() {
+  let topR = -1, topL = -1;
+  for (let i = 1; i < leaves.length; i++) {
+    const L = leaves[i];
+    if (L.t === 0 && !L.active && topR < 0) topR = i;
+    if (L.t === 1 && !L.active) topL = i;
+  }
+  // right block: from back cover to just under the top resting sheet
+  const rTop = topR > 0 ? yR(topR) - EPS * 0.5 : -1;
+  if (rTop > BASE + 0.001) { blockR.visible = true; blockR.scale.set(W - 0.06, rTop - BASE, H - 0.01); blockR.position.set(0.05 + (W - 0.06) / 2, BASE + (rTop - BASE) / 2, 0); }
+  else blockR.visible = false;
+  const lBot = cover.t === 1 ? yL(0) : BASE;
+  const lTop = topL > 0 ? yL(topL) - EPS * 0.5 : -1;
+  if (lTop > lBot + 0.001 && cover.t === 1) { blockL.visible = true; blockL.scale.set(W - 0.06, lTop - lBot, H - 0.01); blockL.position.set(-(0.05 + (W - 0.06) / 2), lBot + (lTop - lBot) / 2, 0); }
+  else blockL.visible = false;
+  edgeTex.repeat.set(1, 1);
+}
+
+/* ---------------- Camera framing ---------------- */
+const look = { x: 0, y: 0 }, lookS = { x: 0, y: 0 };
+let fitDist = 12, fitZ = 0, portrait = false, focus = 'R', camX = 0, flyS = 0, readDist = 10, readS = 0, settledAt = 0;
+camera.up.set(0, 0, -1); // far edge of the book is "up" on screen, also when looking straight down
+const TILT0 = () => THREE.MathUtils.degToRad(portrait ? 14 : 12); // close to overhead so pages are barely foreshortened
+function placeCam(x, d, tilt, yaw, tz) {
+  camera.position.set(x + Math.sin(yaw) * Math.sin(tilt) * d, 0.2 + Math.cos(tilt) * d, tz + Math.cos(yaw) * Math.sin(tilt) * d);
+  camera.lookAt(x, 0.2, tz);
+}
+// Space left free by the header and the section bar, in CSS pixels
+const margins = () => portrait ? { top: 96, bottom: 100, side: 8 } : { top: 20, bottom: 80, side: 16 };
+function fitCamera() {
+  const hw = portrait ? (W + TAB_L) / 2 + 0.12 : W + TAB_L + 0.06;
+  const pts = [];
+  for (const x of [-hw, hw]) for (const z of [-CH / 2 - 0.04, CH / 2 + 0.04]) for (const y of [0, 0.42]) pts.push(new THREE.Vector3(x, y, z));
+  const m = margins(), aw = innerWidth - 2 * m.side, ah = innerHeight - m.top - m.bottom, v = new THREE.Vector3();
+  let d = 12, tz = 0;
+  for (let it = 0; it < 10; it++) {
+    placeCam(0, d, TILT0(), 0, tz); camera.updateMatrixWorld();
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const p of pts) {
+      v.copy(p).project(camera);
+      const px = (v.x + 1) / 2 * innerWidth, py = (1 - v.y) / 2 * innerHeight;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }
+    d *= Math.max((x1 - x0) / aw, (y1 - y0) / ah);
+    tz += ((y0 + y1) / 2 - (m.top + ah / 2)) * (CH / (y1 - y0));
+  }
+  fitDist = d; fitZ = tz;
+}
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h); camera.aspect = w / h;
+  portrait = w / h < 0.9;
+  camera.fov = portrait ? 34 : 26; camera.updateProjectionMatrix();
+  fitCamera();
+  // reading view: straight down, the open spread (one page on phones) filling the screen
+  const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const padY = portrait ? 200 : 24, padX = portrait ? 12 : 16;
+  const needH = H * h / Math.max(200, h - padY), needW = (portrait ? W + 0.05 : 2 * W + 0.04) * w / Math.max(200, w - padX * 2);
+  readDist = Math.max(needH / (2 * tanV), needW / (2 * tanV * camera.aspect));
+}
+addEventListener('resize', () => { resize(); afterNav(); }); resize();
+
+/* ---------------- Interaction ---------------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.3), hit = new THREE.Vector3();
+function bookPoint(e) {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  if (!ray.ray.intersectPlane(plane, hit)) return null;
+  return { x: hit.x - book.position.x, z: hit.z };
+}
+function pickTab(e) {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const h = ray.intersectObjects(tabMeshes, false)[0];
+  return h ? h.object.userData.tab : null;
+}
+function screenX(x) { return new THREE.Vector3(x + book.position.x, 0.3, 0).project(camera).x; }
+
+let drag = null, lastClick = 0;
+const canvasEl = renderer.domElement;
+canvasEl.addEventListener('pointerdown', e => {
+  sound.unlock();
+  const tab = pickTab(e);
+  if (tab) { goToSection(tab.s); return; }
+  const p = bookPoint(e); if (!p || Math.abs(p.z) > CH / 2 + 0.2) return;
+  const n = targetCount();
+  let side = p.x >= 0 ? 'R' : 'L';
+  if (n === 0) side = 'R';
+  if (Math.abs(p.x) > W + 0.4) return;
+  const leaf = side === 'R' ? leaves[n] : leaves[n - 1];
+  if (!leaf) return;
+  drag = { leaf, side, x0: e.clientX, y0: e.clientY, moved: false, ndcX0: ndc.x, t0: performance.now() };
+  canvasEl.setPointerCapture(e.pointerId);
+});
+canvasEl.addEventListener('pointermove', e => {
+  const n = targetCount();
+  if (!drag) { hover(e, n); return; }
+  if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) return;
+  if (!drag.moved) { drag.moved = true; drag.leaf.dragging = true; drag.leaf.active = true; drag.leaf.peekTarget = 0; sound.swish(0.6); }
+  const sx = screenX(0), pw = screenX(W) - sx;
+  const r0 = Math.max(0.25, Math.abs((drag.ndcX0 - sx) / pw));
+  const xNow = e.clientX / innerWidth * 2 - 1;
+  const r = Math.max(-1, Math.min(1, (xNow - sx) / pw / r0));
+  drag.leaf.dragT = Math.acos(r) / Math.PI;
+});
+function endDrag(e) {
+  if (!drag) return;
+  const L = drag.leaf;
+  if (drag.moved) {
+    L.dragging = false;
+    const v = L.vel;
+    if (drag.side === 'R') setTarget(L, (L.t > 0.35 || v > 1.2) && v > -1.2 ? 1 : 0);
+    else setTarget(L, (L.t < 0.65 || v < -1.2) && v < 1.2 ? 0 : 1);
+    focus = drag.side === 'R' ? (L.target === 1 ? (L.i >= 1 ? 'L' : 'R') : 'R') : (L.target === 0 ? 'R' : 'L');
+    L.flying = true; afterNav();
+  } else {
+    if (portrait) (e.clientX > innerWidth / 2 ? next : prev)();
+    else drag.side === 'R' ? flipForward() : flipBack();
+  }
+  drag = null;
+}
+canvasEl.addEventListener('pointerup', endDrag);
+canvasEl.addEventListener('pointercancel', endDrag);
+canvasEl.addEventListener('pointerleave', () => { for (const L of leaves) if (L.peekTarget) { L.peekTarget = 0; L.active = true; } canvasEl.style.cursor = ''; });
+
+function hover(e, n) {
+  look.x = e.clientX / innerWidth - 0.5; look.y = e.clientY / innerHeight - 0.5;
+  const tab = pickTab(e);
+  const p = bookPoint(e);
+  let peekLeaf = null, cursor = '';
+  if (tab) cursor = 'pointer';
+  else if (p && Math.abs(p.z) < CH / 2 && Math.abs(p.x) < W + 0.1) {
+    cursor = 'grab';
+    if (!lens.on || e.pointerType !== 'mouse') {
+      if (p.x > W * 0.72 && n < leaves.length && n > 0) peekLeaf = leaves[n];
+      if (p.x < -W * 0.72 && n > 1) peekLeaf = leaves[n - 1];
+    }
+  }
+  canvasEl.style.cursor = lens.on ? 'none' : cursor;
+  for (const L of leaves) {
+    const want = L === peekLeaf && !L.flying ? 1 : 0;
+    if (L.peekTarget !== want) { L.peekTarget = want; L.active = true; }
+  }
+}
+
+addEventListener('pointermove', e => {
+  const near = e.clientY > innerHeight - 140 || (e.clientX > innerWidth - 170 && e.clientY < 100);
+  document.body.classList.toggle('reveal', near);
+});
+addEventListener('keydown', e => {
+  if (viewer.classList.contains('open')) {
+    if (e.key === 'Escape') closeViewer();
+    if (e.key === 'ArrowRight') viewerStep(1);
+    if (e.key === 'ArrowLeft') viewerStep(-1);
+    return;
+  }
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { sound.unlock(); next(); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { sound.unlock(); prev(); }
+  if (e.key === 'z' || e.key === 'Z') openViewer();
+  if (e.key === 'l' || e.key === 'L') lens.toggle();
+  if (e.key === 'Escape' && lens.on) lens.drop();
+  if (e.key === 'Home') goTo(0);
+});
+
+/* ---------------- UI ---------------- */
+const chipsEl = document.getElementById('chips');
+const chipEls = {};
+for (const s of SECTIONS) {
+  const b = document.createElement('button'); b.className = 'chip'; b.style.setProperty('--c', s.color);
+  b.innerHTML = `<span class="dot"></span><span class="n">${s.num}</span><span class="label-long">${s.title}</span><span class="label-short">${s.short}</span>`;
+  b.addEventListener('click', () => { sound.unlock(); goToSection(s); });
+  chipsEl.appendChild(b); chipEls[s.id] = b;
+}
+function goToSection(s) { goTo((s.dividerFace - 1) / 2 + 2); }
+document.getElementById('prevBtn').addEventListener('click', () => { sound.unlock(); prev(); });
+document.getElementById('nextBtn').addEventListener('click', () => { sound.unlock(); next(); });
+
+const whereEl = document.getElementById('where'), hintEl = document.getElementById('hint');
+function spreadFaces(n) {
+  return { left: n >= 2 ? 2 * (n - 2) + 1 : -1, right: n >= 1 && n - 1 < PAPER_LEAVES ? 2 * (n - 1) : -1 };
+}
+let hintTimer = 0, openedOnce = false;
+function afterNav() {
+  const n = targetCount();
+  const { left, right } = spreadFaces(n);
+  const sec = (left >= 0 && faces[left].section) || (right >= 0 && faces[right].section) || null;
+  document.body.classList.toggle('open', n > 0);
+  for (const id in chipEls) chipEls[id].setAttribute('aria-current', String(id === sec));
+  if (sec) { const c = chipEls[sec]; chipsEl.scrollTo({ left: c.offsetLeft - chipsEl.clientWidth / 2 + c.clientWidth / 2, behavior: 'smooth' }); }
+  let label;
+  if (n === 0) label = 'Cover';
+  else if (n === 1) label = 'Contents';
+  else if (n === leaves.length) label = `Page ${faces[left].pageNo} · end of the notebook`;
+  else if (portrait) { const f = faces[focus === 'L' ? left : right]; label = `Page ${f.pageNo}` + (f.section ? ` · ${secById[f.section].title}` : ''); }
+  else label = `Pages ${faces[left].pageNo}–${faces[right].pageNo}` + (sec ? ` · ${secById[sec].title}` : '');
+  whereEl.textContent = label;
+  document.getElementById('prevBtn').disabled = n === 0;
+  document.getElementById('nextBtn').disabled = n === leaves.length;
+  if (portrait && n === 1) focus = 'R';
+  if (n > 0 && !openedOnce) {
+    openedOnce = true; hintEl.textContent = portrait ? 'Tap the right side to read on' : 'Drag a corner or use ← →  ·  sections are at the bottom';
+    clearTimeout(hintTimer); hintTimer = setTimeout(() => (hintEl.style.opacity = 0), 6000);
+  }
+  setTimeout(refreshHi, 250);
+}
+
+/* ---------------- Zoom viewer ---------------- */
+const viewer = document.getElementById('viewer'), vimg = document.getElementById('vimg');
+const pageList = faces.filter(f => f.type === 'page');
+let vIndex = 0;
+function openViewer() {
+  const n = targetCount(); const { left, right } = spreadFaces(n);
+  const order = portrait && focus === 'R' ? [right, left] : [left, right];
+  let f = order.find(i => i >= 0 && faces[i].type === 'page');
+  if (f === undefined) { const nxt = pageList.find(p => p.pageNo - 1 > Math.max(left, right)) || pageList[pageList.length - 1]; f = nxt.pageNo - 1; }
+  vIndex = Math.max(0, pageList.findIndex(p => p.pageNo - 1 === f));
+  viewer.classList.add('open'); viewer.classList.remove('zoomed'); showViewer();
+  document.getElementById('vclose').focus();
+}
+function showViewer() {
+  const p = pageList[vIndex];
+  vimg.src = `orig-${p.img}.webp`; vimg.alt = p.title;
+  document.getElementById('vtitle').textContent = p.title;
+  document.getElementById('vsub').textContent = `${p.sec.num} · ${p.sec.title} · page ${p.pageNo}`;
+  document.getElementById('vprev').disabled = vIndex === 0;
+  document.getElementById('vnext').disabled = vIndex === pageList.length - 1;
+}
+function viewerStep(d) { vIndex = Math.max(0, Math.min(pageList.length - 1, vIndex + d)); viewer.classList.remove('zoomed'); showViewer(); }
+function closeViewer() {
+  viewer.classList.remove('open');
+  const p = pageList[vIndex]; goTo(Math.floor(p.pageNo / 2) + 1); // jump the notebook to the page you were reading
+}
+document.getElementById('zoomBtn').addEventListener('click', openViewer);
+document.getElementById('vclose').addEventListener('click', closeViewer);
+document.getElementById('vprev').addEventListener('click', () => viewerStep(-1));
+document.getElementById('vnext').addEventListener('click', () => viewerStep(1));
+vimg.addEventListener('click', e => {
+  const sc = document.getElementById('vscroll');
+  const rx = e.offsetX / vimg.clientWidth, ry = e.offsetY / vimg.clientHeight;
+  viewer.classList.toggle('zoomed');
+  if (viewer.classList.contains('zoomed')) requestAnimationFrame(() => {
+    sc.scrollLeft = rx * vimg.clientWidth - sc.clientWidth / 2; sc.scrollTop = ry * vimg.clientHeight - sc.clientHeight / 2;
+  });
+});
+viewer.addEventListener('click', e => { if (e.target === viewer || e.target.id === 'vscroll') closeViewer(); });
+
+/* ---------------- Paper sounds (synthesised, no files) ---------------- */
+const sound = (() => {
+  let ac = null, on = true, noise = null;
+  const btn = document.getElementById('soundBtn');
+  try { if (localStorage.getItem('nb-sound') === 'off') { on = false; btn.setAttribute('aria-pressed', 'false'); } } catch {}
+  btn.addEventListener('click', () => {
+    on = !on; btn.setAttribute('aria-pressed', String(on));
+    try { localStorage.setItem('nb-sound', on ? 'on' : 'off'); } catch {}
+  });
+  function unlock() {
+    if (ac) { if (ac.state === 'suspended') ac.resume().catch(() => {}); return; }
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      noise = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
+      const d = noise.getChannelData(0); let b = 0;
+      for (let i = 0; i < d.length; i++) { b = 0.86 * b + 0.14 * (Math.random() * 2 - 1); d[i] = b * 2.4; }
+    } catch { ac = null; }
+  }
+  function play(dur, f0, f1, vol, q) {
+    if (!on || !ac || ac.state !== 'running') return;
+    const t = ac.currentTime, src = ac.createBufferSource(); src.buffer = noise; src.playbackRate.value = 0.9 + Math.random() * 0.25;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q;
+    bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.18); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    src.connect(bp).connect(g).connect(ac.destination); src.start(t, Math.random() * 0.1); src.stop(t + dur + 0.05);
+  }
+  let lastSwish = 0, lastTap = 0;
+  return {
+    unlock,
+    swish(s = 1) { const n = performance.now(); if (n - lastSwish < 60) return; lastSwish = n; play(0.42, 2600, 700, 0.11 * s, 0.6); },
+    tap() { const n = performance.now(); if (n - lastTap < 60) return; lastTap = n; play(0.12, 900, 300, 0.07, 0.9); },
+  };
+})();
+
+/* ---------------- Magnifier lens ----------------
+   Raycasts the pointer onto the visible page, reads the texture coordinates there and
+   draws that patch of the page's own high-res image, about 2.5x larger than on screen. */
+let busyNow = false;
+const lens = (() => {
+  const el = document.getElementById('lens'), cv = el.querySelector('canvas'), g = cv.getContext('2d');
+  const dock = document.getElementById('lensDock');
+  const xlCache = {};
+  function getXL(name) {
+    if (!xlCache[name]) {
+      const im = new Image(); xlCache[name] = { im, ok: false };
+      im.onload = () => { xlCache[name].ok = true; if (api.on && !busyNow) api.draw(); };
+      im.src = `xl-${name}.webp`;
+    }
+    return xlCache[name].ok ? xlCache[name].im : null;
+  }
+  const pageMeshes = () => [...cover.pivot.children, ...leaves.slice(1).flatMap(L => [L.front, L.back])];
+  const api = { on: false, zoom: 2.5, visible: false, last: null, overBook: false };
+  const size = () => Math.round(Math.min(340, Math.max(220, Math.min(innerWidth, innerHeight) * 0.34)));
+  // resting spot: bottom-right corner, lifted above the section bar on narrower screens
+  const dockPos = () => ({ x: innerWidth - 64, y: innerHeight - (innerWidth < 1100 ? 140 : 64) });
+  function place(x, y) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+  function animate() { el.classList.add('anim'); clearTimeout(api._t); api._t = setTimeout(() => el.classList.remove('anim'), 380); }
+  function placeDock() {
+    const d = dockPos();
+    if (!api.on) place(d.x, d.y);
+    dock.style.left = d.x + 'px'; dock.style.top = d.y + 'px';
+  }
+  api.pickUp = (x, y) => {
+    if (api.on) return; api.on = true;
+    api.last = { x: x ?? innerWidth / 2, y: y ?? innerHeight / 2 };
+    api.overBook = true;
+    el.classList.remove('docked'); el.classList.add('held'); el.style.setProperty('--s', size() + 'px');
+    animate(); place(api.last.x, api.last.y); dock.classList.add('show');
+    api.draw();
+  };
+  api.drop = () => {
+    if (!api.on) return; api.on = false;
+    el.classList.remove('held', 'mag', 'away'); el.classList.add('docked'); el.style.removeProperty('--s');
+    animate(); placeDock(); dock.classList.remove('show'); api.visible = false;
+    canvasEl.style.cursor = '';
+  };
+  api.toggle = () => (api.on ? api.drop() : api.pickUp(api.last?.x, api.last?.y));
+  api.hide = () => { if (api.visible) { el.classList.remove('mag'); api.visible = false; } };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); api.pickUp(e.clientX, e.clientY); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); api.pickUp(); } });
+  dock.addEventListener('click', e => { e.stopPropagation(); api.drop(); });
+  addEventListener('resize', placeDock); placeDock();
+  // while held, the glass follows the pointer anywhere on the screen
+  addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    api.last = { x: e.clientX, y: e.clientY }; api.overBook = e.target === canvasEl;
+    if (api.on) { el.classList.remove('away'); place(e.clientX, e.clientY); if (!busyNow) api.draw(); }
+  });
+  document.addEventListener('mouseleave', () => { if (api.on) el.classList.add('away'); api.hide(); });
+  const v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
+  api.draw = () => {
+    const pt = api.last; if (!api.on || !pt) return;
+    if (busyNow || !api.overBook || viewer.classList.contains('open')) return api.hide();
+    camera.updateMatrixWorld();
+    ndc.set(pt.x / innerWidth * 2 - 1, -(pt.y / innerHeight) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hitP = ray.intersectObjects(pageMeshes(), false)[0];
+    if (!hitP || !hitP.uv) return api.hide();
+    const leaf = leaves.find(L => L.front === hitP.object || L.back === hitP.object);
+    const poster = hitP.object === cover.inner; // the WANTED poster inside the cover
+    if (!leaf && !poster) return api.hide(); // the outside of the cover is in the way
+    const isFront = !poster && hitP.object === leaf.front;
+    const tex = hitP.object.material.map; if (!tex || !tex.image) return api.hide();
+    const face = poster ? { type: 'poster' } : faces[isFront ? leaf.faceF : leaf.faceB];
+    const xl = face.type === 'page' ? getXL(face.img) : null; // sharper source for handwriting
+    const img = xl || tex.image, tw = img.width, th = img.height;
+    const u = isFront ? hitP.uv.x : 1 - hitP.uv.x, v = 1 - hitP.uv.y;
+    // how many screen pixels one source pixel covers right now, measured along the page height
+    const span = poster ? CH : H;
+    v1.copy(hitP.point); v1.z = -span / 2; v2.copy(hitP.point); v2.z = span / 2;
+    v1.project(camera); v2.project(camera);
+    const s = (Math.abs(v1.y - v2.y) / 2 * innerHeight) / th;
+    const D = size(), dpr = Math.min(devicePixelRatio, 2);
+    if (cv.width !== D * dpr) cv.width = cv.height = D * dpr;
+    const R = D / (2 * api.zoom * s); // half-size of the patch in source pixels
+    g.fillStyle = '#f7f2e7'; g.fillRect(0, 0, cv.width, cv.height);
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, u * tw - R, v * th - R, 2 * R, 2 * R, 0, 0, cv.width, cv.height);
+    if (!api.visible) { el.classList.add('mag'); api.visible = true; }
+  };
+  // scroll to change the zoom while holding the glass
+  addEventListener('wheel', e => {
+    if (!api.on) return;
+    e.preventDefault();
+    api.zoom = Math.max(1.5, Math.min(4.5, api.zoom * (e.deltaY > 0 ? 0.92 : 1.08)));
+    api.draw();
+  }, { passive: false });
+  return api;
+})();
+
+/* links printed on a page get a real <a> laid exactly over them once the page lies still */
+const pageLinkEl = document.getElementById('pageLink'), lv = new THREE.Vector3();
+function placePageLink(busy) {
+  camera.updateMatrixWorld();
+  const n = targetCount(), { left, right } = spreadFaces(n);
+  let shown = false;
+  if (!busy && n > 0 && !viewer.classList.contains('open')) for (const f of [left, right]) {
+    if (f < 0 || !faces[f].link) continue;
+    const leaf = leaves[Math.floor(f / 2) + 1], isLeft = f % 2 === 1, [u0, v0, u1, v1] = faces[f].link.rect;
+    const y = leaf.pivotY() + 0.001, X = u => isLeft ? -W + u * W : u * W, Z = v => -H / 2 + v * H;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const [u, v] of [[u0, v0], [u1, v0], [u0, v1], [u1, v1]]) {
+      lv.set(X(u) + book.position.x, y, Z(v)).project(camera);
+      const px = (lv.x + 1) / 2 * innerWidth, py = (1 - lv.y) / 2 * innerHeight;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }
+    Object.assign(pageLinkEl.style, { left: x0 + 'px', top: y0 + 'px', width: (x1 - x0) + 'px', height: (y1 - y0) + 'px', display: 'block' });
+    if (pageLinkEl.href !== faces[f].link.url) pageLinkEl.href = faces[f].link.url;
+    shown = true; break;
+  }
+  if (!shown && pageLinkEl.style.display !== 'none') pageLinkEl.style.display = 'none';
+}
+
+/* ---------------- Loop ---------------- */
+let last = performance.now();
+function frame(tms) {
+  const dt = Math.min(0.033, (tms - last) / 1000); last = tms; now = tms / 1000;
+  for (const L of leaves) if (L.active || L.dragging) stepLeaf(L, dt);
+  updateStacks();
+  // book slides so the closed cover is centred and the open spread is centred
+  const open = cover.t;
+  book.position.x = -CW / 2 * (1 - open) * (1 - open * 0.0);
+  contact.scale.set(CW * (1 + open) + 0.5, 1, CH + 0.5);
+  contact.position.x = CW / 2 - open * CW / 2;
+  // camera: gentle parallax towards the pointer
+  lookS.x += (look.x - lookS.x) * Math.min(1, dt * 3); lookS.y += (look.y - lookS.y) * Math.min(1, dt * 3);
+  // while a page is in the air the camera eases back and tilts a little, then settles close again to read
+  let fly = 0;
+  for (const L of leaves) if (L.flying || L.dragging) fly = Math.max(fly, Math.sin(Math.PI * L.t) * (L.i === 0 ? 0.7 : 1));
+  flyS += (fly - flyS) * Math.min(1, dt * (fly > flyS ? 5 : 1.8));
+  const tilt = TILT0() + THREE.MathUtils.degToRad(8 * flyS + lookS.y * 2.5), yaw = lookS.x * 0.04;
+  const d = fitDist * (1 + 0.14 * flyS), nOpen = targetCount();
+  const wantX = portrait && nOpen > 0 ? (focus === 'L' ? -W / 2 - 0.05 : W / 2 + 0.05) : 0;
+  camX += (wantX - camX) * Math.min(1, dt * 4);
+  // once every page has landed, glide into the reading view; any page movement pulls back out
+  const busy = leaves.some(L => L.flying || L.dragging || Math.abs(L.t - L.target) > 0.002);
+  busyNow = busy;
+  if (busy) lens.hide(); else if (lens.on && (readS < 0.999 || !lens.visible)) lens.draw(); // follow the camera as it settles
+  if (busy || nOpen === 0) settledAt = now;
+  const readT = !busy && nOpen > 0 && now - settledAt > 0.15 ? 1 : 0;
+  readS += (readT - readS) * Math.min(1, dt * (readT ? 2.4 : 6));
+  const e = readS * readS * (3 - 2 * readS);
+  placeCam(camX, d, tilt, yaw, fitZ);
+  if (e > 0.0001) {
+    const P = camera.position.clone(), T = new THREE.Vector3(camX, 0.2, fitZ);
+    const RP = new THREE.Vector3(camX, 0.3 + readDist, 0.0001), RT = new THREE.Vector3(camX, 0.3, 0);
+    camera.position.lerpVectors(P, RP, e); camera.lookAt(T.lerp(RT, e));
+  }
+  placePageLink(busy);
+  const reading = e > 0.6 && !portrait;
+  if (reading !== document.body.classList.contains('reading')) document.body.classList.toggle('reading', reading);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+for (const L of leaves) L.update();
+initTextures().then(() => {
+  if (portrait) hintEl.textContent = 'Tap the cover to open it';
+  afterNav();
+  document.getElementById('loader').classList.add('gone');
+  requestAnimationFrame(frame);
+  refreshHi();
+});
+</script>
+</body>
+</html>
